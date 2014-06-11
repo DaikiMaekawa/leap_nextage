@@ -128,9 +128,9 @@ class LeapNextage(object):
                 wpose.orientation.z = -0.003
                 wpose.orientation.w = 0.706
                 
-                wpose.position.x = wpose.position.x if self.MIN_ARM_POS_X < wpose.position.x < self.MAX_ARM_POS_X else pos.x
-                wpose.position.y = wpose.position.y if self.MIN_ARM_POS_Y < wpose.position.y < self.MAX_ARM_POS_Y else pos.y
-                wpose.position.z = wpose.position.z if self.MIN_ARM_POS_Z < wpose.position.z < self.MAX_ARM_POS_Z else pos.z
+                #wpose.position.x = wpose.position.x if self.MIN_ARM_POS_X < wpose.position.x < self.MAX_ARM_POS_X else pos.x
+                #wpose.position.y = wpose.position.y if self.MIN_ARM_POS_Y < wpose.position.y < self.MAX_ARM_POS_Y else pos.y
+                #wpose.position.z = wpose.position.z if self.MIN_ARM_POS_Z < wpose.position.z < self.MAX_ARM_POS_Z else pos.z
                 
                 if len(waypoints) < 10:
                     waypoints.append(wpose)
