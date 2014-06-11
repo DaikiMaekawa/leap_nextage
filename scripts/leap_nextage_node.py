@@ -16,6 +16,7 @@ import copy
 import tf
 import math
 
+from moveit_commander.exception import MoveItCommanderException
 from leap_motion2.msg import Hand
 
 class LeapNextage(object):
@@ -37,6 +38,7 @@ class LeapNextage(object):
         rospy.init_node("moveit_command_sender")
         rospy.Subscriber("leapmotion2/data", Hand, self.__callback_hands_data)
         self.__robot = moveit_commander.RobotCommander()
+
         self.__rarm = moveit_commander.MoveGroupCommander("right_arm")
         self.__larm = moveit_commander.MoveGroupCommander("left_arm")
         self.__waypoints = []
@@ -93,8 +95,7 @@ class LeapNextage(object):
         """
         self.__waypoints.append(copy.deepcopy(wpose))
         
-        if len(self.__waypoints) > 5:
-            self.__rarm.clear_pose_targets()
+        if len(self.__waypoints) > 5: self.__rarm.clear_pose_targets()
             (plan, fraction) = self.__rarm.compute_cartesian_path(self.__waypoints, 0.05, 0.0)
             self.__rarm.execute(plan)
             print "=" * 10, " plan..."
@@ -106,6 +107,7 @@ class LeapNextage(object):
     def run(self):
         rate = rospy.Rate(20)
         old_hand_data = None
+        waypoints = []
 
         while not rospy.is_shutdown():
             rate.sleep()
@@ -113,28 +115,32 @@ class LeapNextage(object):
                 if not old_hand_data:
                     old_hand_data = self.__hand_data
                     continue
-                else:
-                    hand_data = self.__hand_data
-                    wpose = geometry_msgs.msg.Pose()
-                    pos = self.__rarm.get_current_pose().pose.position
+                    
+                hand_data = self.__hand_data
+                wpose = geometry_msgs.msg.Pose()
+                pos = self.__rarm.get_current_pose().pose.position
 
-                    wpose.position.x = pos.x + (hand_data.palmpos.z - old_hand_data.palmpos.z) * 0.01
-                    wpose.position.y = pos.y + (hand_data.palmpos.x - old_hand_data.palmpos.x) * 0.01
-                    wpose.position.z = pos.z + (hand_data.palmpos.y - old_hand_data.palmpos.y) * 0.01
-                    wpose.orientation.x = -0.003
-                    wpose.orientation.y = -0.708
-                    wpose.orientation.z = -0.003
-                    wpose.orientation.w = 0.706
-                    
-                    wpose.position.x = wpose.position.x if self.MIN_ARM_POS_X < wpose.position.x < self.MAX_ARM_POS_X else pos.x
-                    wpose.position.y = wpose.position.y if self.MIN_ARM_POS_Y < wpose.position.y < self.MAX_ARM_POS_Y else pos.y
-                    wpose.position.z = wpose.position.z if self.MIN_ARM_POS_Z < wpose.position.z < self.MAX_ARM_POS_Z else pos.z
-                    
+                wpose.position.x = pos.x + (hand_data.palmpos.z - old_hand_data.palmpos.z) * 0.01
+                wpose.position.y = pos.y + (hand_data.palmpos.x - old_hand_data.palmpos.x) * 0.01
+                wpose.position.z = pos.z + (hand_data.palmpos.y - old_hand_data.palmpos.y) * 0.01
+                wpose.orientation.x = -0.003
+                wpose.orientation.y = -0.708
+                wpose.orientation.z = -0.003
+                wpose.orientation.w = 0.706
+                
+                wpose.position.x = wpose.position.x if self.MIN_ARM_POS_X < wpose.position.x < self.MAX_ARM_POS_X else pos.x
+                wpose.position.y = wpose.position.y if self.MIN_ARM_POS_Y < wpose.position.y < self.MAX_ARM_POS_Y else pos.y
+                wpose.position.z = wpose.position.z if self.MIN_ARM_POS_Z < wpose.position.z < self.MAX_ARM_POS_Z else pos.z
+                
+                if len(waypoints) < 10:
+                    waypoints.append(wpose)
+                else:
                     self.__rarm.clear_pose_targets()
-                    self.__rarm.set_pose_target(wpose)
-                    self.__rarm.go()
+                    (plan, fraction) = self.__rarm.compute_cartesian_path(waypoints, 0.05, 0.0)
+                    self.__rarm.execute(plan)
+                    del waypoints[:]
                     
-                    old_hand_data = hand_data
+                old_hand_data = hand_data
         
         #rospy.spin()
 
@@ -142,6 +148,8 @@ if __name__ == '__main__':
     try:
         leap_nextage = LeapNextage()
         leap_nextage.run()
+    except MoveItCommanderException:
+        pass
 
     except rospy.ROSInterruptException:
         pass
