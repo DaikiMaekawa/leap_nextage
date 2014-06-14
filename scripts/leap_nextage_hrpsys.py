@@ -114,12 +114,17 @@ class LeapNextage(object):
         while not rospy.is_shutdown():
             if self.__leap_receiver.hand_data:
                 hand_data = self.__leap_receiver.hand_data
+                if hand_data.is_left.data:
+                    hand_name = "larm"
+                else:
+                    hand_name = "rarm"
+                
                 print "diff.x = ", hand_data.ypr.y * 0.001
                 print "diff.y = ", hand_data.ypr.x * 0.001
                 diff_x = -hand_data.ypr.x * 0.001
                 diff_y = hand_data.ypr.y * 0.001
                 
-                self.__util.set_target_pose_relative("rarm", [diff_x, diff_y, 0], [0, 0, 0], 1.0)
+                self.__util.set_target_pose_relative(hand_name, [diff_x, diff_y, 0], [0, 0, 0], 1.0)
                 rospy.sleep(1.0)
 
                 #pose.position.x += -hand_data.ypr.x * 0.001
